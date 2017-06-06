@@ -15,7 +15,7 @@ import com.aliyun.mns.model.SubscriptionMeta;
 import com.aliyun.mns.model.TopicMessage;
 
 public class AliMNSMQTest {
-	@Test
+/*	@Test
 	public void testCreateQueue() {
 		CloudAccount account = new CloudAccount("", "", "");
 		MNSClient client = account.getMNSClient(); // 在程序中，CloudAccount以及MNSClient单例实现即可，多线程安全
@@ -97,11 +97,11 @@ public class AliMNSMQTest {
 				} else if (se.getErrorCode().equals("TimeExpired")) {
 					System.out.println("The request is time expired. Please check your local machine timeclock");
 				}
-				/*
+				
 				 * you can get more MNS service error code from following link:
 				 * https://help.aliyun.com/document_detail/mns/api_reference/
 				 * error_code/error_code.html
-				 */
+				 
 			}
 		} catch (Exception e) {
 			System.out.println("Unknown exception happened!");
@@ -151,5 +151,5 @@ public class AliMNSMQTest {
 		}
 		client.close();
 
-	}
+	}*/
 }
