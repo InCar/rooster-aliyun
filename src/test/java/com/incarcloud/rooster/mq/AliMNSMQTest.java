@@ -52,7 +52,7 @@ public class AliMNSMQTest {
 
 	@Test
 	public void testCreateSend() {
-		CloudAccount account = new CloudAccount("LTAItjABmFIcoDen", "pu1zhsRFnSzR3M2sZenLxGrHsHrY8Y", "");
+		CloudAccount account = new CloudAccount("", "", "");
 		MNSClient client = account.getMNSClient(); // 在程序中，CloudAccount以及MNSClient单例实现即可，多线程安全
 		CloudQueue queue = client.getQueueRef("rooster-dev");
 		for (int i = 0; i < 10; i++) {
