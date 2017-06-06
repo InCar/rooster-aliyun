@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import com.aliyun.mns.common.ClientException;
 import com.aliyun.mns.common.ServiceException;
-import com.incarcloud.rooster.aliyun.MnsClient;
 
 public class AliMNSMQ implements IBigMQ {
 	private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(AliMNSMQ.class);
