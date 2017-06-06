@@ -45,7 +45,7 @@ public class AliMNSMQ implements IBigMQ {
 			} catch (ServiceException se) {
 				resultList.add(new MqSendResult(new MQException(se.getErrorCode()), null));
 //				se.printStackTrace();
-				s_logger.debug("62",se.getMessage());
+				s_logger.debug("62",se.getErrorCode(),se.getMessage());
 			} catch (Exception e) {
 				resultList.add(new MqSendResult(new MQException(e.getMessage()), null));
 //				e.printStackTrace();
