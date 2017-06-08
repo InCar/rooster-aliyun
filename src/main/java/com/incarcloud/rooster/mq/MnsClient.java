@@ -1,5 +1,6 @@
 package com.incarcloud.rooster.mq;
 
+import com.incarcloud.rooster.AliYunConfig;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
