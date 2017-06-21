@@ -10,68 +10,94 @@ import com.aliyun.mns.client.MNSClient;
 import com.aliyun.mns.common.http.ClientConfiguration;
 import com.aliyun.mns.model.Message;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
+ * @author Fan Beibei
  * @ClassName: MNSClient
  * @Description: 操作阿里MNS的客户端
- * @author Fan Beibei
  * @date 2017年6月4日 下午9:07:20
- * 
  */
 @Component
 public class MnsClient {
-	private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(MnsClient.class);
-	/**
-	 * MNS 客户端(单例模式)
-	 */
-	private MNSClient client;
+    private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(MnsClient.class);
+    /**
+     * MNS 客户端(单例模式)
+     */
+    private MNSClient client;
 
-	/**
-	 * @param config
-	 */
-	public MnsClient(AliYunConfig config) {
-		String accessId = config.getAccessKeyId();
-		String accessKey = config.getAccessKeySecret();
-		String endPoint = config.getMnsEndpoint();
-		int maxConnections = config.getMaxConnections();
-		int maxConnectionsPerRoute = config.getMaxConnectionsPerRoute();
+    /**
+     * @param config
+     */
+    public MnsClient(AliYunConfig config) {
+        String accessId = config.getAccessKeyId();
+        String accessKey = config.getAccessKeySecret();
+        String endPoint = config.getMnsEndpoint();
 
-		ClientConfiguration clientConfiguration = new ClientConfiguration();
-		clientConfiguration.setMaxConnections(maxConnections);
-		clientConfiguration.setMaxConnectionsPerRoute(maxConnectionsPerRoute);
-		CloudAccount cloudAccount = new CloudAccount(accessId, accessKey, endPoint, clientConfiguration);
-		client = cloudAccount.getMNSClient();
-	}
+        ClientConfiguration clientConfiguration = new ClientConfiguration();
+        CloudAccount cloudAccount = new CloudAccount(accessId, accessKey, endPoint, clientConfiguration);
+        client = cloudAccount.getMNSClient();
 
-	/**
-	 * 获取MNS客户端
-	 * 
-	 * @return 单例模式的MNS客户端
-	 */
-	private MNSClient getMnsClient() {
+    }
 
-		return client;
-	}
+    /**
+     * 获取MNS客户端
+     *
+     * @return 单例模式的MNS客户端
+     */
+    private MNSClient getMnsClient() {
 
-	/**
-	 * 发送消息，返回消息ID
-	 * 
-	 * @param queueName
-	 *            队列名称
-	 * @param message
-	 *            消息内容
-	 * @return 消息ID
-	 */
-	public String sendMessage(String queueName, byte[] messageContent) {
+        return client;
+    }
 
-		CloudQueue queue = getMnsClient().getQueueRef(queueName);
-		Message message = new Message();
-		message.setMessageBody(messageContent);
-		Message putMsg = queue.putMessage(message);
-		
-		s_logger.debug("******************"+putMsg.getMessageId());
+    /**
+     * 发送消息，返回消息ID
+     *
+     * @param queueName      队列名称
+     * @param messageContent 消息内容
+     * @return 消息ID
+     */
+    public String sendMessage(String queueName, byte[] messageContent) {
+        if (null == queueName || "".equals(queueName.trim()) || null == messageContent) {
+            throw new IllegalArgumentException();
+        }
 
-		return putMsg.getMessageId();
+        CloudQueue queue = getMnsClient().getQueueRef(queueName);
+        Message message = new Message();
+        message.setMessageBody(messageContent);
+        Message putMsg = queue.putMessage(message);
 
-	}
+        s_logger.debug("******************" + putMsg.getMessageId());
+
+        return putMsg.getMessageId();
+
+    }
+
+
+    /**
+     * 批量发送消息
+     *
+     * @param queueName 队列名称
+     * @param listMsgs  消息内容
+     * @return
+     */
+    public List<Message> batchSendMessage(String queueName, List<MQMsg> listMsgs) {
+
+        if (null == queueName || "".equals(queueName.trim()) || null == listMsgs || 0 == listMsgs.size()) {
+            throw new IllegalArgumentException();
+        }
+
+        List<Message> messageList = new ArrayList<Message>(listMsgs.size());
+        for (MQMsg msg : listMsgs) {
+            Message message = new Message();
+            message.setMessageBody(msg.getData());
+            messageList.add(message);
+        }
+
+        CloudQueue queue = getMnsClient().getQueueRef(queueName);
+
+        return queue.batchPutMessage(messageList);
+    }
 
 }
