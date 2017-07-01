@@ -19,7 +19,6 @@ import java.util.Properties;
  * @Description: 操作阿里MNS的客户端
  * @date 2017年6月4日 下午9:07:20
  */
-@Component
 public class MnsClient {
     private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(MnsClient.class);
     /**
