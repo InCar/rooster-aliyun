@@ -1,6 +1,5 @@
 package com.incarcloud.rooster.mq;
 
-import com.incarcloud.rooster.AliYunConfig;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +11,7 @@ import com.aliyun.mns.model.Message;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * @author Fan Beibei
@@ -28,12 +28,25 @@ public class MnsClient {
     private MNSClient client;
 
     /**
-     * @param config
+     * @param config  对应MNS的3个 配置{
+     *  accessKeyId
+     *  accessKeySecret
+     *  mnsEndpoint
+     * }
      */
-    public MnsClient(AliYunConfig config) {
-        String accessId = config.getAccessKeyId();
+
+    public MnsClient(Properties config) {
+
+        String accessId = (String) config.get("accessKeyId");
+        String accessKey = (String) config.get("accessKeySecret");
+        String endPoint = (String) config.get("mnsEndpoint");
+
+
+        /*String accessId = config.getAccessKeyId();
         String accessKey = config.getAccessKeySecret();
-        String endPoint = config.getMnsEndpoint();
+        String endPoint = config.getMnsEndpoint();*/
+
+
 
         ClientConfiguration clientConfiguration = new ClientConfiguration();
         CloudAccount cloudAccount = new CloudAccount(accessId, accessKey, endPoint, clientConfiguration);
