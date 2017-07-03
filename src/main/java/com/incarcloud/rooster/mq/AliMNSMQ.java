@@ -19,14 +19,15 @@ public class AliMNSMQ implements IBigMQ {
     private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(AliMNSMQ.class);
 
 
-    private String queueName = "rooster-dev";
+    private String queueName;
 
     private MnsClient mnsClient;
 
     /**
      * @param mnsClient
      */
-    public AliMNSMQ(MnsClient mnsClient) {
+    public AliMNSMQ(String queueName,MnsClient mnsClient) {
+        this.queueName = queueName;
         this.mnsClient = mnsClient;
     }
 
@@ -36,7 +37,7 @@ public class AliMNSMQ implements IBigMQ {
         MqSendResult result = null;
 
         try {
-            String msgId = mnsClient.sendMessage(queueName, msg.getData());
+            String msgId = mnsClient.sendMessage(queueName, msg);
             if (null != msgId) {
                 result = new MqSendResult(null, msgId);
             } else {
@@ -68,7 +69,6 @@ public class AliMNSMQ implements IBigMQ {
 
     @Override
     public List<MqSendResult> post(List<MQMsg> listMsgs) {
-
         if (null == listMsgs || 0 == listMsgs.size()) {
             throw new IllegalArgumentException("message list is null");
         }
@@ -120,5 +120,15 @@ public class AliMNSMQ implements IBigMQ {
         }
 
         return resultList;
+    }
+
+
+    @Override
+    public List<MQMsg> batchReceive(int size) {
+        if (size <= 0) {
+            throw new IllegalArgumentException();
+        }
+
+        return mnsClient.batchReceiveMessage(queueName,size);
     }
 }
