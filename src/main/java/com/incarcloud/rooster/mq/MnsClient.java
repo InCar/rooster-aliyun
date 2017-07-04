@@ -1,5 +1,6 @@
 package com.incarcloud.rooster.mq;
 
+import com.incarcloud.rooster.util.MQMsgUtil;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -79,8 +80,8 @@ public class MnsClient {
         CloudQueue queue = getMnsClient().getQueueRef(queueName);
         Message message = new Message();
         try {
-            message.setMessageBody(convertMQMsgToByteArray(mqMsg));
-        }catch (UnsupportedEncodingException e){
+            message.setMessageBody(MQMsgUtil.convertMQMsgToByteArray(mqMsg));
+        } catch (UnsupportedEncodingException e) {
             s_logger.error(e.getMessage());
         }
 
@@ -110,7 +111,7 @@ public class MnsClient {
         for (MQMsg msg : listMsgs) {
             Message message = new Message();
             try {
-                message.setMessageBody(convertMQMsgToByteArray(msg));
+                message.setMessageBody(MQMsgUtil.convertMQMsgToByteArray(msg));
             } catch (UnsupportedEncodingException e) {
                 s_logger.error(e.getMessage());
             }
@@ -123,6 +124,13 @@ public class MnsClient {
     }
 
 
+    /**
+     * 批量接收消息
+     *
+     * @param queueName
+     * @param size
+     * @return
+     */
     public List<MQMsg> batchReceiveMessage(String queueName, int size) {
 
         if (null == queueName || "".equals(queueName.trim()) || size <= 0) {
@@ -140,7 +148,7 @@ public class MnsClient {
             for (Message m : msgList) {
                 byte[] messageBody = m.getMessageBodyAsBytes();
                 try {
-                    mqMsgs.add(convertByteArrayToMQMsg(messageBody));
+                    mqMsgs.add(MQMsgUtil.convertByteArrayToMQMsg(messageBody));
                 } catch (UnsupportedEncodingException e) {
                     s_logger.error(e.getMessage());
                 }
@@ -149,32 +157,5 @@ public class MnsClient {
         }
 
         return null;
-    }
-
-
-    /**
-     * @param bytes
-     * @return
-     */
-    private MQMsg convertByteArrayToMQMsg(byte[] bytes) throws UnsupportedEncodingException {
-
-        String s = new String(bytes, "UTF-8");
-        String mark = s.split("\\->")[0];
-        String dataB64 = s.split("\\->")[1];
-
-        MQMsg mqMsg = new MQMsg();
-        mqMsg.setMark(mark);
-        mqMsg.setData(Base64.getDecoder().decode(dataB64));
-
-        return mqMsg;
-    }
-
-    /**
-     * @param mqMsg
-     * @return
-     */
-    private byte[] convertMQMsgToByteArray(MQMsg mqMsg) throws UnsupportedEncodingException {
-
-        return (mqMsg.getMark() + "\\->" + mqMsg.getDataB64()).getBytes("UTF-8");
     }
 }
