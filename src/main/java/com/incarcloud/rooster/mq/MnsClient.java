@@ -149,7 +149,14 @@ public class MnsClient {
                 byte[] messageBody = m.getMessageBodyAsBytes();
                 try {
                     mqMsgs.add(MQMsgUtil.convertByteArrayToMQMsg(messageBody));
+
+                    queue.deleteMessage(m.getReceiptHandle());
+
                 } catch (UnsupportedEncodingException e) {
+
+                }catch (IllegalArgumentException e){
+
+                }catch (Exception e){
                     s_logger.error(e.getMessage());
                 }
             }
