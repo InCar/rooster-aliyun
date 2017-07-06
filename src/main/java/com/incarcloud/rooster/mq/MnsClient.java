@@ -1,8 +1,6 @@
 package com.incarcloud.rooster.mq;
 
-import com.incarcloud.rooster.util.MQMsgUtil;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import com.aliyun.mns.client.CloudAccount;
 import com.aliyun.mns.client.CloudQueue;
@@ -12,7 +10,6 @@ import com.aliyun.mns.model.Message;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
@@ -80,9 +77,9 @@ public class MnsClient {
         CloudQueue queue = getMnsClient().getQueueRef(queueName);
         Message message = new Message();
         try {
-            message.setMessageBody(MQMsgUtil.convertMQMsgToByteArray(mqMsg));
+            message.setMessageBody(mqMsg.serializeToBytes());
         } catch (UnsupportedEncodingException e) {
-            s_logger.error(e.getMessage());
+            s_logger.error("plant unsupport  UTF-8," + mqMsg);
         }
 
         Message putMsg = queue.putMessage(message);
@@ -111,11 +108,12 @@ public class MnsClient {
         for (MQMsg msg : listMsgs) {
             Message message = new Message();
             try {
-                message.setMessageBody(MQMsgUtil.convertMQMsgToByteArray(msg));
+                message.setMessageBody(msg.serializeToBytes());
+                messageList.add(message);
             } catch (UnsupportedEncodingException e) {
-                s_logger.error(e.getMessage());
+                s_logger.error("plant unsupport  UTF-8," + msg);
             }
-            messageList.add(message);
+
         }
 
         CloudQueue queue = getMnsClient().getQueueRef(queueName);
@@ -148,9 +146,9 @@ public class MnsClient {
             for (Message m : msgList) {
                 byte[] messageBody = m.getMessageBodyAsBytes();
                 try {
-                    mqMsgs.add(MQMsgUtil.convertByteArrayToMQMsg(messageBody));
+                    mqMsgs.add(MQMsg.deserializeFromBytes(messageBody));
                 } catch (Exception e) {
-                    s_logger.error(e.getMessage());
+                    s_logger.error("plant unsupport  UTF-8," + m);
                 }
 
                 queue.deleteMessage(m.getReceiptHandle());
