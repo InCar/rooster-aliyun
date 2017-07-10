@@ -131,4 +131,10 @@ public class AliMNSMQ implements IBigMQ {
 
         return mnsClient.batchReceiveMessage(queueName,size);
     }
+
+
+    @Override
+    public void close(){
+        mnsClient.close();
+    }
 }
