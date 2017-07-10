@@ -158,4 +158,12 @@ public class MnsClient {
 
         return null;
     }
+
+
+    /**
+     * 关闭，释放连接
+     */
+    public void close(){
+        client.close();
+    }
 }
