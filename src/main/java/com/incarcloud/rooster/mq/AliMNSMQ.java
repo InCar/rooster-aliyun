@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.aliyun.mns.model.Message;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.aliyun.mns.common.ClientException;
@@ -16,7 +17,7 @@ import com.aliyun.mns.common.ServiceException;
  * @date 2017年6月4日 下午9:07:20
  */
 public class AliMNSMQ implements IBigMQ {
-    private static org.slf4j.Logger s_logger = LoggerFactory.getLogger(AliMNSMQ.class);
+    private static Logger s_logger = LoggerFactory.getLogger(AliMNSMQ.class);
 
 
     private String queueName;
@@ -136,5 +137,10 @@ public class AliMNSMQ implements IBigMQ {
     @Override
     public void close(){
         mnsClient.close();
+    }
+
+    @Override
+    public void releaseCurrentConn() {//单例模式无需释放
+
     }
 }

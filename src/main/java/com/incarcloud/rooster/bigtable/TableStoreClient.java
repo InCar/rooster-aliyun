@@ -36,6 +36,13 @@ public class TableStoreClient {
         client = new SyncClient(otsEndPoint, accessKeyId, accessKeySecret, otsInstance, clientConfiguration);
     }
 
+    /**
+     * 释放资源
+     */
+    public void close(){
+        client.shutdown();
+    }
+
 
     /**
      * 插入数据
