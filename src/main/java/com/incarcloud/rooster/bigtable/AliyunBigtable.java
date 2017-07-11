@@ -26,4 +26,8 @@ public class AliyunBigtable implements IBigTable {
         s_logger.debug("save to tablestore success:"+rowKey);
     }
 
+    @Override
+    public void close() {
+        client.close();
+    }
 }
