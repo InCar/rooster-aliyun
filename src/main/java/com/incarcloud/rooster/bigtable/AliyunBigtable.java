@@ -3,7 +3,7 @@ package com.incarcloud.rooster.bigtable;/**
  */
 
 import com.incarcloud.rooster.datapack.DataPackObject;
-import com.incarcloud.rooster.util.DataTargetUtils;
+import com.incarcloud.rooster.util.DataPackObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ public class AliyunBigtable implements IBigTable {
 
     public void save(String rowKey, DataPackObject data, String tableName) throws Exception {
 
-        client.insert(rowKey, DataTargetUtils.toJson(data),tableName);
+        client.insert(rowKey, DataPackObjectUtils.toJson(data),tableName);
         s_logger.debug("save to tablestore success:"+rowKey);
     }
 
