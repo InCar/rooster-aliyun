@@ -5,6 +5,7 @@ package com.incarcloud.rooster.bigtable;/**
 import com.alicloud.openservices.tablestore.ClientConfiguration;
 import com.alicloud.openservices.tablestore.SyncClient;
 import com.alicloud.openservices.tablestore.model.*;
+import com.alicloud.openservices.tablestore.model.internal.CreateTableRequestEx;
 import com.incarcloud.rooster.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,7 @@ public class TableStoreClient {
     /**
      * 释放资源
      */
-    public void close(){
+    public void close() {
         client.shutdown();
     }
 
@@ -159,8 +160,9 @@ public class TableStoreClient {
 
     /**
      * 根据主键批量获取
+     *
      * @param pkValueList 主键
-     * @param tableName 表名
+     * @param tableName   表名
      * @return
      * @throws Exception
      */
@@ -184,6 +186,52 @@ public class TableStoreClient {
         return batchGetRowResponse.getSucceedRows();
 
     }
+
+    /**
+     * 判断表是否存在
+     *
+     * @param tableName
+     * @return
+     */
+    public boolean existTable(String tableName) {
+        if(StringUtil.isBlank(tableName)){
+            throw new IllegalArgumentException();
+        }
+
+        ListTableResponse response = client.listTable();
+        for (String name : response.getTableNames()) {
+            if (tableName.equals(name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    /**
+     * 创建表格
+     * @param tableName
+     * @param pkColumName
+     * @param primaryKeyType
+     */
+    public void createTable(String tableName,String pkColumName,PrimaryKeyType primaryKeyType){
+        TableMeta tableMeta = new TableMeta(tableName);
+        tableMeta.addPrimaryKeyColumn(new PrimaryKeySchema(pkColumName, primaryKeyType));
+        // 数据的过期时间, 单位秒, -1代表永不过期. 假如设置过期时间为一年, 即为 365 * 24 * 3600.
+        int timeToLive = -1;
+        // 保存的最大版本数, 设置为3即代表每列上最多保存3个最新的版本.
+        int maxVersions = 3;
+        TableOptions tableOptions = new TableOptions(timeToLive, maxVersions);
+        CreateTableRequestEx request = new CreateTableRequestEx(tableMeta, tableOptions);
+        // 设置读写预留值，容量型实例只能设置为0，高性能实例可以设置为非零值
+        request.setReservedThroughput(new ReservedThroughput(new CapacityUnit(0, 0)));
+        client.createTable(request);
+    }
+
+
+
+
 
 
 }
