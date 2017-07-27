@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Fan Beibei
- * @Description: 依赖阿里云OTS实现的远程命令客户端
+ * @Description: 依赖阿里云OTS实现的远程命令客户端  //TODO 未加缓存，未考虑OTS连接不上的情况
  * @date 2017/7/26 22:17
  */
 public class AliyunRestfulCommandClient extends RestfulCommandClient {
@@ -18,7 +18,7 @@ public class AliyunRestfulCommandClient extends RestfulCommandClient {
 
     private static final String TABLE_NAME = "register_center";
     private static final String PK_COLUMN_NAME = "key";
-    private static final String DATA_COLUMN_NAME = "data";
+    private static final String DATA_COLUMN_NAME = "value";
 
     private TableStoreClient client;
     public AliyunRestfulCommandClient(TableStoreClient client){
