@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Fan Beibei
@@ -76,7 +77,49 @@ public class TableStoreClient {
         // 写数据到TableStore
         client.putRow(new PutRowRequest(rowPutChange));
         // 如果没有抛出异常，则说明执行成功
-        System.out.println("Put row succeeded.");
+        s_logger.debug("Put row succeeded.");
+    }
+
+    /**
+     * 批量插入数据
+     *
+     * @param pkVals     pk -> val
+     * @param tableName 表格名称
+     */
+    public void batchInsert(Map<String, String> pkVals, String tableName) {
+        BatchWriteRowRequest batchWriteRowRequest = new BatchWriteRowRequest();
+
+        for(Map.Entry<String,String> pkVal:pkVals.entrySet() ){
+
+            PrimaryKeyBuilder pkBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+
+            pkBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(pkVal.getKey()));
+            PrimaryKey primaryKey = pkBuilder.build();
+            RowPutChange rowPutChange = new RowPutChange(tableName, primaryKey);
+            rowPutChange
+                    .addColumn(new Column(DATA_COLUMN_NAME, ColumnValue.fromString(pkVal.getValue())));
+
+            batchWriteRowRequest.addRowChange(rowPutChange);
+
+
+            BatchWriteRowResponse response = client.batchWriteRow(batchWriteRowRequest);
+
+            if (!response.isAllSucceed()) {
+                for (BatchWriteRowResponse.RowResult rowResult : response.getFailedRows()) {
+                    s_logger.debug("失败的行:" + batchWriteRowRequest.getRowChange(rowResult.getTableName(), rowResult.getIndex()).getPrimaryKey()+"\n失败原因:" + rowResult.getError());
+                }
+                /**
+                 * 可以通过createRequestForRetry方法再构造一个请求对失败的行进行重试.这里只给出构造重试请求的部分.
+                 * 推荐的重试方法是使用SDK的自定义重试策略功能, 支持对batch操作的部分行错误进行重试. 设定重试策略后, 调用接口处即不需要增加重试代码.
+                 */
+                BatchWriteRowRequest retryRequest = batchWriteRowRequest.createRequestForRetry(response.getFailedRows());
+
+            }
+
+        }
+
+
+
     }
 
 
@@ -194,7 +237,7 @@ public class TableStoreClient {
      * @return
      */
     public boolean existTable(String tableName) {
-        if(StringUtil.isBlank(tableName)){
+        if (StringUtil.isBlank(tableName)) {
             throw new IllegalArgumentException();
         }
 
@@ -211,11 +254,12 @@ public class TableStoreClient {
 
     /**
      * 创建表格
+     *
      * @param tableName
      * @param pkColumName
      * @param primaryKeyType
      */
-    public void createTable(String tableName,String pkColumName,PrimaryKeyType primaryKeyType){
+    public void createTable(String tableName, String pkColumName, PrimaryKeyType primaryKeyType) {
         TableMeta tableMeta = new TableMeta(tableName);
         tableMeta.addPrimaryKeyColumn(new PrimaryKeySchema(pkColumName, primaryKeyType));
         // 数据的过期时间, 单位秒, -1代表永不过期. 假如设置过期时间为一年, 即为 365 * 24 * 3600.
@@ -228,10 +272,6 @@ public class TableStoreClient {
         request.setReservedThroughput(new ReservedThroughput(new CapacityUnit(0, 0)));
         client.createTable(request);
     }
-
-
-
-
 
 
 }
