@@ -427,7 +427,6 @@ public class TableStoreClient {
                 primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(rowKey));
                 PrimaryKey primaryKey = primaryKeyBuilder.build();
                 multiRowQueryCriteria.addRow(primaryKey);
-                System.out.println(rowKey);
             }
 
             // 设置读取最新版本和读取列信息
@@ -454,14 +453,12 @@ public class TableStoreClient {
                 List<BatchGetRowResponse.RowResult> rowResultList = batchGetRowResponse.getSucceedRows();
                 if(null != rowResultList && 0 < rowResultList.size()) {
                     for(BatchGetRowResponse.RowResult rowResult: rowResultList) {
-                        System.err.println(rowResult.getRow());
                         if(null != rowResult && null != rowResult.getRow()) {
                             row = rowResult.getRow();
                             if(null != row.getColumns() && 0 < row.getColumns().length) {
                                 // 获得rowkey和json字符串
                                 rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
                                 jsonString = row.getColumns()[0].getValue().asString();
-                                System.out.println(String.format("%s: %s", rowKey, jsonString));
 
                                 // 记录日志
                                 s_logger.info(">> read key(" + rowKey + "), start storage...");
