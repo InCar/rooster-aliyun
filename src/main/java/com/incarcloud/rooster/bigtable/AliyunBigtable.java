@@ -16,6 +16,10 @@ import org.slf4j.LoggerFactory;
 public class AliyunBigtable implements IBigTable {
     private static Logger s_logger = LoggerFactory.getLogger(AliyunBigtable.class);
     /**
+     * 采集数据表
+     */
+    private static final String TELEMETRY_TABLE = "telemetry";
+    /**
      * 保存vin码的表
      */
     private static final String VIN_TABLE = "vehicle";
@@ -23,7 +27,6 @@ public class AliyunBigtable implements IBigTable {
      * 二级索引表
      */
     private static final String SECOND_INDEX_TABLE = "second_index";
-
 
     private TableStoreClient client;
 
@@ -41,11 +44,20 @@ public class AliyunBigtable implements IBigTable {
         s_logger.debug("save to tablestore success:" + rowKey);
     }
 
-
     @Override
     public void saveVin(String vin) throws Exception {
         client.insert(vin, vin, VIN_TABLE);
         s_logger.debug("save vin  success:" + vin);
+    }
+
+    @Override
+    public String queryMinTimeRowKey(String startTimeString) {
+        return client.querySecondIndexTimeRowKey(startTimeString, SECOND_INDEX_TABLE);
+    }
+
+    @Override
+    public String transferToStorage(String startTimeRowKey, ITransferStorage transferStorage) {
+        return client.doQueryAndTransfer(startTimeRowKey, transferStorage, SECOND_INDEX_TABLE, TELEMETRY_TABLE);
     }
 
     @Override
