@@ -359,6 +359,7 @@ public class TableStoreClient {
             // 执行查询
             dataRowKeyList = new ArrayList<>();
             getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
+            // 要求大于1到好处就是同步完最后一条数据，没有新数据同步的时候，不会同步已同步的数据
             if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
                 // 循环遍历数据
                 for (Row row : getRangeResponse.getRows()) {
@@ -366,10 +367,8 @@ public class TableStoreClient {
                     if(null != row && null != row.getColumns() && 0 < row.getColumns().length) {
                         // 获得rowKey和需要转移的RowKey
                         rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
-                        if(null != rowKey && !rowKey.equals(startTimeRowKey)) {
-                            // 添加RowKeyValue
-                            dataRowKeyList.add(row.getColumns()[0].getValue().asString());
-                        }
+                        // 添加RowKeyValue
+                        dataRowKeyList.add(row.getColumns()[0].getValue().asString());
                     }
                 }
             } else {
