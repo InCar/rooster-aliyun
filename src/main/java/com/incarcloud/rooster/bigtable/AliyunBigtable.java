@@ -51,13 +51,13 @@ public class AliyunBigtable implements IBigTable {
     }
 
     @Override
-    public String queryMinTimeRowKey(String startTimeString) {
-        return client.querySecondIndexTimeRowKey(startTimeString, SECOND_INDEX_TABLE);
+    public String queryRowKey(String startTimeString) {
+        return client.queryRowKey(startTimeString, SECOND_INDEX_TABLE);
     }
 
     @Override
-    public String transferToStorage(String startTimeRowKey, ITransferStorage transferStorage) {
-        return client.doQueryAndTransfer(startTimeRowKey, transferStorage, SECOND_INDEX_TABLE, TELEMETRY_TABLE);
+    public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
+        return client.queryData(startTimeRowKey, dataReadable, SECOND_INDEX_TABLE, TELEMETRY_TABLE);
     }
 
     @Override

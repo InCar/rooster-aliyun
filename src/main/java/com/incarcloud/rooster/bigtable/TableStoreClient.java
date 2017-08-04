@@ -6,10 +6,6 @@ import com.alicloud.openservices.tablestore.ClientConfiguration;
 import com.alicloud.openservices.tablestore.SyncClient;
 import com.alicloud.openservices.tablestore.model.*;
 import com.alicloud.openservices.tablestore.model.internal.CreateTableRequestEx;
-import com.incarcloud.rooster.datapack.DataPackAlarm;
-import com.incarcloud.rooster.datapack.DataPackOverview;
-import com.incarcloud.rooster.datapack.DataPackPeak;
-import com.incarcloud.rooster.datapack.DataPackPosition;
 import com.incarcloud.rooster.util.DataPackObjectUtils;
 import com.incarcloud.rooster.util.RowKeyUtil;
 import com.incarcloud.rooster.util.StringUtil;
@@ -279,7 +275,7 @@ public class TableStoreClient {
      * @param indexTableName 二级索引表名称
      * @return
      */
-    public String querySecondIndexTimeRowKey(String startTimeString, String indexTableName) {
+    public String queryRowKey(String startTimeString, String indexTableName) {
         // 判断字符串信息
         if(null == startTimeString || "".equals(startTimeString)) {
             throw new IllegalArgumentException("startTimeString is empty");
@@ -324,12 +320,12 @@ public class TableStoreClient {
      *     如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
      *
      * @param startTimeRowKey 开始时间RowKey
-     * @param transferStorage 转移与数据存储助手
+     * @param dataReadable 数据读取接口
      * @param indexTableName 二级索引表名称
      * @param dataTableName 数据表名称
      * @return
      */
-    public String doQueryAndTransfer(String startTimeRowKey, ITransferStorage transferStorage, String indexTableName, String dataTableName) {
+    public String queryData(String startTimeRowKey, IBigTable.IDataReadable dataReadable, String indexTableName, String dataTableName) {
         // 判断开始时间RowKey字符串
         PrimaryKeyValue startTimeKeyValue;
         if(StringUtils.isNotBlank(startTimeRowKey)) {
@@ -387,7 +383,7 @@ public class TableStoreClient {
                 for (int i = 0, n = transferRowKeySet.size(); i < n; i++) {
                     if(100 == subRowKeyList.size()) {
                         // 执行存储
-                        transferToDB(subRowKeyList, transferStorage, dataTableName);
+                        transferToDB(subRowKeyList, dataReadable, dataTableName);
                         // 重新初始化
                         subRowKeyList = new ArrayList<>();
                     }
@@ -411,10 +407,10 @@ public class TableStoreClient {
      * 转移数据到DB
      *
      * @param transferRowKeySet 需要转移的RowKey集合
-     * @param transferStorage 转移与数据存储助手
+     * @param dataReadable 数据读取接口
      * @param dataTableName 数据表名称
      */
-    void transferToDB(List<String> transferRowKeySet, ITransferStorage transferStorage, String dataTableName) {
+    private void transferToDB(List<String> transferRowKeySet, IBigTable.IDataReadable dataReadable, String dataTableName) {
         // 判断集合状态
         if(null != transferRowKeySet && 0 < transferRowKeySet.size()) {
             // 批量读取OTS数据
@@ -474,34 +470,9 @@ public class TableStoreClient {
                                     case DataPackObjectUtils.OVERVIEW:
                                         // json转对象
                                         Object object = DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString));
-                                        if(object instanceof DataPackPosition) {
-                                            /* 位置数据 */
-                                            if(null != object) {
-                                                // 转换数据并存储
-                                                transferStorage.storageLocation((DataPackPosition) object);
-                                            }
-                                        } else if(object instanceof DataPackPeak) {
-                                            /* 极值数据 */
-                                            if(null != object) {
-                                                // 保存到数据库
-                                                transferStorage.storageCondition((DataPackPeak) object);
-                                            }
-                                        } else if(object instanceof DataPackAlarm) {
-                                            /* 报警数据 */
-                                            if(null != object) {
-                                                // 保存到数据库
-                                                transferStorage.storageAlarm((DataPackAlarm) object);
-                                            }
-                                        } else if(object instanceof DataPackOverview) {
-                                            /* 整车数据 */
-                                            if(null != object) {
-                                                // 保存到数据库
-                                                transferStorage.storageDrive((DataPackOverview) object);
-                                            }
-                                        }
+                                        // 传递读取对象数据
+                                        dataReadable.onRead(object);
                                         break;
-                                    default:
-                                        s_logger.info(">> storage nothing...");
                                 }
                             }
                         }
