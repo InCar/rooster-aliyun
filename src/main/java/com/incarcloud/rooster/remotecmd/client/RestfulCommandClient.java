@@ -12,6 +12,8 @@ import com.incarcloud.rooster.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 /**
  * @author Fan Beibei
  * @Description: restful客户端
@@ -24,13 +26,14 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
      * @param url     服务端地址
      * @param vin     车辆vin码
      * @param command 指令类型
-     * @throws Exception
+     * @throws IOException 请求超时设备网络问题
      */
     @Override
-    public RespContent sendCommand(String url, String vin, CommandType command) throws Exception {
+    public RespContent sendCommand(String url, String vin, CommandType command) throws IOException {
         if (StringUtil.isBlank(url) || StringUtil.isBlank(vin) || null == command) {
             throw new IllegalArgumentException();
         }
+
 
         ReqContent req = new ReqContent(command, vin);
 
