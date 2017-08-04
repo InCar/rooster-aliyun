@@ -316,7 +316,7 @@ public class TableStoreClient {
     }
 
     /**
-     * 查询转移数据到MySQL的RowKey<br>
+     * 查询数据包的RowKey集合，并根据RowKey集合查询真实数据包数据<br>
      *     如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
      *
      * @param startTimeRowKey 开始时间RowKey
@@ -382,12 +382,16 @@ public class TableStoreClient {
                 List<String> subRowKeyList = new ArrayList<>();
                 for (int i = 0, n = transferRowKeySet.size(); i < n; i++) {
                     if(100 == subRowKeyList.size()) {
-                        // 执行存储
-                        transferToDB(subRowKeyList, dataReadable, dataTableName);
+                        // 每积累100个数据包键值则进行批量查询数据包信息
+                        queryDataPack(subRowKeyList, dataReadable, dataTableName);
                         // 重新初始化
                         subRowKeyList = new ArrayList<>();
                     }
                     subRowKeyList.add(transferRowKeySet.get(i));
+                }
+                // 最后处理小于100的数据包键值
+                if(null != subRowKeyList && 0 < subRowKeyList.size()) {
+                    queryDataPack(subRowKeyList, dataReadable, dataTableName);
                 }
             }
 
@@ -404,13 +408,13 @@ public class TableStoreClient {
     }
 
     /**
-     * 转移数据到DB
+     * 查询真实数据包数据
      *
      * @param transferRowKeySet 需要转移的RowKey集合
      * @param dataReadable 数据读取接口
      * @param dataTableName 数据表名称
      */
-    private void transferToDB(List<String> transferRowKeySet, IBigTable.IDataReadable dataReadable, String dataTableName) {
+    private void queryDataPack(List<String> transferRowKeySet, IBigTable.IDataReadable dataReadable, String dataTableName) {
         // 判断集合状态
         if(null != transferRowKeySet && 0 < transferRowKeySet.size()) {
             // 批量读取OTS数据
