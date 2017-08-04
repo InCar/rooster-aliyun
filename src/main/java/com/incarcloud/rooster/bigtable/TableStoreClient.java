@@ -461,7 +461,7 @@ public class TableStoreClient {
                                 jsonString = row.getColumns()[0].getValue().asString();
 
                                 // 记录日志
-                                s_logger.info(">> read key(" + rowKey + "), start storage...");
+                                s_logger.info(">> read key(" + rowKey + "), callback onRead...");
 
                                 // 根据rowkey分析类型，将json字符串转换对象
                                 objectTypeString = RowKeyUtil.getDataTypeFromRowKey(rowKey);
