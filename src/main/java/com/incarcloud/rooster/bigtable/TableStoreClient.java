@@ -353,11 +353,11 @@ public class TableStoreClient {
 
         // 读取数据
         String rowKey = startTimeRowKey;
-        List<String> transferRowKeySet;
+        List<String> dataRowKeyList;
         GetRangeResponse getRangeResponse;
         while (true) {
             // 执行查询
-            transferRowKeySet = new ArrayList<>();
+            dataRowKeyList = new ArrayList<>();
             getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
             if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
                 // 循环遍历数据
@@ -368,26 +368,26 @@ public class TableStoreClient {
                         rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
                         if(null != rowKey && !rowKey.equals(startTimeRowKey)) {
                             // 添加RowKeyValue
-                            transferRowKeySet.add(row.getColumns()[0].getValue().asString());
+                            dataRowKeyList.add(row.getColumns()[0].getValue().asString());
                         }
                     }
                 }
             } else {
                 // 记录日志
-                s_logger.info(">> nothing to storage...");
+                s_logger.info(">> query nothing...");
             }
 
             // 执行转移操作，限制每100个处理一次
-            if(null != transferRowKeySet && 0 < transferRowKeySet.size()) {
+            if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
                 List<String> subRowKeyList = new ArrayList<>();
-                for (int i = 0, n = transferRowKeySet.size(); i < n; i++) {
+                for (int i = 0, n = dataRowKeyList.size(); i < n; i++) {
                     if(100 == subRowKeyList.size()) {
                         // 每积累100个数据包键值则进行批量查询数据包信息
                         queryDataPack(subRowKeyList, dataReadable, dataTableName);
                         // 重新初始化
                         subRowKeyList = new ArrayList<>();
                     }
-                    subRowKeyList.add(transferRowKeySet.get(i));
+                    subRowKeyList.add(dataRowKeyList.get(i));
                 }
                 // 最后处理小于100的数据包键值
                 if(null != subRowKeyList && 0 < subRowKeyList.size()) {
@@ -410,19 +410,19 @@ public class TableStoreClient {
     /**
      * 查询真实数据包数据
      *
-     * @param transferRowKeySet 需要转移的RowKey集合
+     * @param dataRowKeyList 数据RowKey集合
      * @param dataReadable 数据读取接口
      * @param dataTableName 数据表名称
      */
-    private void queryDataPack(List<String> transferRowKeySet, IBigTable.IDataReadable dataReadable, String dataTableName) {
+    private void queryDataPack(List<String> dataRowKeyList, IBigTable.IDataReadable dataReadable, String dataTableName) {
         // 判断集合状态
-        if(null != transferRowKeySet && 0 < transferRowKeySet.size()) {
+        if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
             // 批量读取OTS数据
             MultiRowQueryCriteria multiRowQueryCriteria = new MultiRowQueryCriteria(dataTableName);
 
             // 加入要读取的行
             PrimaryKeyBuilder primaryKeyBuilder;
-            for (String rowKey: transferRowKeySet) {
+            for (String rowKey: dataRowKeyList) {
                 primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
                 primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(rowKey));
                 PrimaryKey primaryKey = primaryKeyBuilder.build();
@@ -461,7 +461,7 @@ public class TableStoreClient {
                                 jsonString = row.getColumns()[0].getValue().asString();
 
                                 // 记录日志
-                                s_logger.info(">> read key(" + rowKey + "), callback onRead...");
+                                s_logger.info(">> read key(" + rowKey + ")...");
 
                                 // 根据rowkey分析类型，将json字符串转换对象
                                 objectTypeString = RowKeyUtil.getDataTypeFromRowKey(rowKey);
