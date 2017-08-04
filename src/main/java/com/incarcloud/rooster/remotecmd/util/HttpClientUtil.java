@@ -68,7 +68,7 @@ public class HttpClientUtil {
      * @param param 参数
      * @return
      */
-    public static String postForStr(String url, Map<String, String> param) {
+    public static String postForStr(String url, Map<String, String> param) throws IOException {
         return postForStr(url, param, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
 
@@ -80,7 +80,7 @@ public class HttpClientUtil {
      * @param charset 编码
      * @return
      */
-    public static String postForStr(String url, Map<String, String> param, String charset) {
+    public static String postForStr(String url, Map<String, String> param, String charset) throws IOException {
         return postForStr(url, param, charset, DEFULT_TIMEOUT, null);
     }
 
@@ -95,7 +95,7 @@ public class HttpClientUtil {
      * @return
      */
     public static String postForStr(String url, Map<String, String> param, String charset, int timeout,
-                                    HttpHost proxy) {
+                                    HttpHost proxy) throws IOException {
 
         // 创建HttpClientBuilder
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -135,21 +135,18 @@ public class HttpClientUtil {
                 return result;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         } finally {
             try {
                 // 关闭流并释放资源
                 client.close();
             } catch (IOException e) {
-                e.printStackTrace();
             }
 
         }
 
         return null;
     }
-
-
 
 
     /**
@@ -161,8 +158,8 @@ public class HttpClientUtil {
      * @param timeout 超时时间（毫秒）
      * @return
      */
-    public static String postJson(String url,  String json, String charset, int timeout) {
-        return postJson(url,json,charset,timeout,null);
+    public static String postJson(String url, String json, String charset, int timeout) throws IOException {
+        return postJson(url, json, charset, timeout, null);
     }
 
 
@@ -174,19 +171,19 @@ public class HttpClientUtil {
      * @param charset 编码
      * @return
      */
-    public static String postJson(String url,  String json, String charset) {
-        return postJson(url,json,charset,DEFULT_TIMEOUT,null);
+    public static String postJson(String url, String json, String charset) throws IOException {
+        return postJson(url, json, charset, DEFULT_TIMEOUT, null);
     }
 
     /**
      * 发送application/json请求返回字符串
      *
-     * @param url     请求地址
-     * @param json    要发送的json数据
+     * @param url  请求地址
+     * @param json 要发送的json数据
      * @return
      */
-    public static String postJson(String url,  String json) {
-        return postJson(url,json,DEFULT_CHARSET,DEFULT_TIMEOUT,null);
+    public static String postJson(String url, String json) throws IOException {
+        return postJson(url, json, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
 
 
@@ -200,8 +197,8 @@ public class HttpClientUtil {
      * @param proxy   代理
      * @return
      */
-    public static String postJson(String url,  String json, String charset, int timeout,
-                                  HttpHost proxy) {
+    public static String postJson(String url, String json, String charset, int timeout,
+                                  HttpHost proxy) throws IOException {
 
         // 创建HttpClientBuilder
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -226,7 +223,7 @@ public class HttpClientUtil {
 
             // 创建参数队列
             if (!StringUtil.isBlank(json)) {
-                StringEntity stringEntity = new StringEntity(json,charset);
+                StringEntity stringEntity = new StringEntity(json, charset);
                 httpPost.setEntity(stringEntity);
             }
 
@@ -245,13 +242,12 @@ public class HttpClientUtil {
                 return result.toString();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         } finally {
             try {
                 // 关闭流并释放资源
                 client.close();
             } catch (IOException e) {
-                e.printStackTrace();
             }
 
         }
@@ -267,7 +263,7 @@ public class HttpClientUtil {
      * @param param 参数
      * @return
      */
-    public static String getForStr(String url, Map<String, String> param) {
+    public static String getForStr(String url, Map<String, String> param) throws IOException {
         return getForStr(url, param, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
 
@@ -279,7 +275,7 @@ public class HttpClientUtil {
      * @param charset 编码
      * @return
      */
-    public static String getForStr(String url, Map<String, String> param, String charset) {
+    public static String getForStr(String url, Map<String, String> param, String charset) throws IOException {
         return getForStr(url, param, charset, DEFULT_TIMEOUT, null);
     }
 
@@ -293,7 +289,7 @@ public class HttpClientUtil {
      * @param proxy   代理
      * @return
      */
-    public static String getForStr(String url, Map<String, String> param, String charset, int timeout, HttpHost proxy) {
+    public static String getForStr(String url, Map<String, String> param, String charset, int timeout, HttpHost proxy) throws IOException {
         if (StringUtil.isBlank(url) || null == param) {
             throw new IllegalArgumentException("url or param can not be null !!!");
         }
@@ -337,13 +333,12 @@ public class HttpClientUtil {
                 return result;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         } finally {
             try {
                 // 关闭流并释放资源
                 client.close();
             } catch (IOException e) {
-                e.printStackTrace();
             }
 
         }
@@ -359,7 +354,7 @@ public class HttpClientUtil {
      * @param files 文件
      * @return
      */
-    public static String uploadFile(String url, Map<String, String> param, Map<String, File> files) {
+    public static String uploadFile(String url, Map<String, String> param, Map<String, File> files) throws IOException {
         return uploadFile(url, param, files, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
 
@@ -372,7 +367,7 @@ public class HttpClientUtil {
      * @param charset 编码
      * @return
      */
-    public static String uploadFile(String url, Map<String, String> param, Map<String, File> files, String charset) {
+    public static String uploadFile(String url, Map<String, String> param, Map<String, File> files, String charset) throws IOException {
         return uploadFile(url, param, files, charset, DEFULT_TIMEOUT, null);
     }
 
@@ -387,7 +382,7 @@ public class HttpClientUtil {
      * @return
      */
     public static String uploadFile(String url, Map<String, String> param, Map<String, File> files, String charset,
-                                    int timeout, HttpHost proxy) {
+                                    int timeout, HttpHost proxy) throws IOException {
 
         if (StringUtil.isBlank(url) || null == files) {
             throw new IllegalArgumentException("url or files can not be null !!!");
@@ -440,8 +435,13 @@ public class HttpClientUtil {
                 return result;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw e;
+        } finally {
+            try {
+                client.close();
+            } catch (IOException e) {
+            }
         }
 
         return null;
@@ -450,23 +450,25 @@ public class HttpClientUtil {
     /**
      * 下载文件
      *
-     * @param url   地址
-     * @param param 附带参数
+     * @param url          地址
+     * @param param        附带参数
+     * @param destFileName 文件存放路径
      * @return
      */
-    public static void downloadFile(String url, Map<String, String> param, String destFileName) {
+    public static void downloadFile(String url, Map<String, String> param, String destFileName) throws IOException {
         downloadFile(url, param, destFileName, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
 
     /**
      * 下载文件
      *
-     * @param url     地址
-     * @param param   附带参数
-     * @param charset 编码
+     * @param url          地址
+     * @param param        附带参数
+     * @param destFileName 文件存放路径
+     * @param charset      编码
      * @return
      */
-    public static void downloadFile(String url, Map<String, String> param, String destFileName, String charset) {
+    public static void downloadFile(String url, Map<String, String> param, String destFileName, String charset) throws IOException {
         downloadFile(url, param, destFileName, charset, DEFULT_TIMEOUT, null);
     }
 
@@ -481,7 +483,7 @@ public class HttpClientUtil {
      * @return
      */
     public static void downloadFile(String url, Map<String, String> param, String destFileName, String charset,
-                                    int timeout, HttpHost proxy) {
+                                    int timeout, HttpHost proxy) throws IOException {
 
         if (StringUtil.isBlank(url) || null == param) {
             throw new IllegalArgumentException("url or param can not be null !!!");
@@ -537,13 +539,12 @@ public class HttpClientUtil {
             in.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         } finally {
             try {
                 // 关闭流并释放资源
                 client.close();
             } catch (IOException e) {
-                e.printStackTrace();
             }
 
         }
