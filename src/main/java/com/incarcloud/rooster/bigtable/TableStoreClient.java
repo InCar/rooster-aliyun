@@ -6,11 +6,16 @@ import com.alicloud.openservices.tablestore.ClientConfiguration;
 import com.alicloud.openservices.tablestore.SyncClient;
 import com.alicloud.openservices.tablestore.model.*;
 import com.alicloud.openservices.tablestore.model.internal.CreateTableRequestEx;
+import com.incarcloud.rooster.util.DataPackObjectUtils;
+import com.incarcloud.rooster.util.RowKeyUtil;
 import com.incarcloud.rooster.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Fan Beibei
@@ -44,7 +49,6 @@ public class TableStoreClient {
         client.shutdown();
     }
 
-
     /**
      * 插入数据
      *
@@ -76,9 +80,48 @@ public class TableStoreClient {
         // 写数据到TableStore
         client.putRow(new PutRowRequest(rowPutChange));
         // 如果没有抛出异常，则说明执行成功
-        System.out.println("Put row succeeded.");
+        s_logger.debug("Put row succeeded.");
     }
 
+    /**
+     * 批量插入数据
+     *
+     * @param pkVals     pk -> val
+     * @param tableName 表格名称
+     */
+    public void batchInsert(Map<String, String> pkVals, String tableName) {
+        BatchWriteRowRequest batchWriteRowRequest = new BatchWriteRowRequest();
+
+        for(Map.Entry<String,String> pkVal:pkVals.entrySet() ){
+
+            PrimaryKeyBuilder pkBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+
+            pkBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(pkVal.getKey()));
+            PrimaryKey primaryKey = pkBuilder.build();
+            RowPutChange rowPutChange = new RowPutChange(tableName, primaryKey);
+            rowPutChange
+                    .addColumn(new Column(DATA_COLUMN_NAME, ColumnValue.fromString(pkVal.getValue())));
+
+            batchWriteRowRequest.addRowChange(rowPutChange);
+
+
+            BatchWriteRowResponse response = client.batchWriteRow(batchWriteRowRequest);
+
+            if (!response.isAllSucceed()) {
+                for (BatchWriteRowResponse.RowResult rowResult : response.getFailedRows()) {
+                    s_logger.debug("失败的行:" + batchWriteRowRequest.getRowChange(rowResult.getTableName(), rowResult.getIndex()).getPrimaryKey()+"\n失败原因:" + rowResult.getError());
+                }
+                /**
+                 * 可以通过createRequestForRetry方法再构造一个请求对失败的行进行重试.这里只给出构造重试请求的部分.
+                 * 推荐的重试方法是使用SDK的自定义重试策略功能, 支持对batch操作的部分行错误进行重试. 设定重试策略后, 调用接口处即不需要增加重试代码.
+                 */
+                BatchWriteRowRequest retryRequest = batchWriteRowRequest.createRequestForRetry(response.getFailedRows());
+
+            }
+
+        }
+
+    }
 
     /**
      * 更新数据
@@ -105,7 +148,6 @@ public class TableStoreClient {
 
     }
 
-
     /**
      * 刪除数据
      *
@@ -130,13 +172,12 @@ public class TableStoreClient {
     }
 
     /**
-     * 根據主鍵查詢
+     * 根据主鍵查詢
      *
      * @param pkValue   主键值
      * @param tableName 表格名称
      * @throws Exception
      */
-
     public Row queryByPk(String pkValue, String tableName) throws Exception {
         if (StringUtil.isBlank(pkValue)) {
             throw new IllegalArgumentException("param error");
@@ -156,7 +197,6 @@ public class TableStoreClient {
         return getRowResponse.getRow();
 
     }
-
 
     /**
      * 根据主键批量获取
@@ -194,7 +234,7 @@ public class TableStoreClient {
      * @return
      */
     public boolean existTable(String tableName) {
-        if(StringUtil.isBlank(tableName)){
+        if (StringUtil.isBlank(tableName)) {
             throw new IllegalArgumentException();
         }
 
@@ -204,18 +244,17 @@ public class TableStoreClient {
                 return true;
             }
         }
-
         return false;
     }
 
-
     /**
      * 创建表格
+     *
      * @param tableName
      * @param pkColumName
      * @param primaryKeyType
      */
-    public void createTable(String tableName,String pkColumName,PrimaryKeyType primaryKeyType){
+    public void createTable(String tableName, String pkColumName, PrimaryKeyType primaryKeyType) {
         TableMeta tableMeta = new TableMeta(tableName);
         tableMeta.addPrimaryKeyColumn(new PrimaryKeySchema(pkColumName, primaryKeyType));
         // 数据的过期时间, 单位秒, -1代表永不过期. 假如设置过期时间为一年, 即为 365 * 24 * 3600.
@@ -229,9 +268,222 @@ public class TableStoreClient {
         client.createTable(request);
     }
 
+    /**
+     * 根据开始时间字符串查询开始时间RowKey
+     *
+     * @param startTimeString 开始时间字符串
+     * @param indexTableName 二级索引表名称
+     * @return
+     */
+    public String queryRowKey(String startTimeString, String indexTableName) {
+        // 判断字符串信息
+        if(null == startTimeString || "".equals(startTimeString)) {
+            throw new IllegalArgumentException("startTimeString is empty");
+        }
 
+        // 根据开始时间字符串，构造模糊范围查询条件
+        String timeString = startTimeString.replaceAll("-", "")
+                .replaceAll(" ", "")
+                .replaceAll(":", "");
+        String startPkValue = RowKeyUtil.makeMinDetectionTimeIndexRowKey(timeString);
+        //String endPkValue = RowKeyUtil.makeMaxDetectionTimeIndexRowKey(timeString.substring(0, timeString.length()-6) + "zzzzzz");
 
+        // 构建范围读取条件
+        RangeRowQueryCriteria rangeRowQueryCriteria = new RangeRowQueryCriteria(indexTableName);
 
+        // 设置起始主键
+        PrimaryKeyBuilder primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(startPkValue));
+        rangeRowQueryCriteria.setInclusiveStartPrimaryKey(primaryKeyBuilder.build());
 
+        // 设置结束主键
+        primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        //primaryKeyBuilder.addPrimaryKeyColumn(TableStoreConfiguration.PRIMARY_KEY_NAME, PrimaryKeyValue.fromString(endPkValue));
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.INF_MAX);
+        rangeRowQueryCriteria.setExclusiveEndPrimaryKey(primaryKeyBuilder.build());
 
+        // 设置读取最新版本和读取列信息
+        rangeRowQueryCriteria.setMaxVersions(1);
+        rangeRowQueryCriteria.addColumnsToGet(DATA_COLUMN_NAME);
+
+        // 获得最小RowKey字符串
+        GetRangeResponse getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
+        if(null != getRangeResponse.getRows() && 0 < getRangeResponse.getRows().size()) {
+            return getRangeResponse.getRows().get(0).getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
+        }
+
+        return null;
+    }
+
+    /**
+     * 查询数据包的RowKey集合，并根据RowKey集合查询真实数据包数据<br>
+     *     如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
+     *
+     * @param startTimeRowKey 开始时间RowKey
+     * @param dataReadable 数据读取接口
+     * @param indexTableName 二级索引表名称
+     * @param dataTableName 数据表名称
+     * @return
+     */
+    public String queryData(String startTimeRowKey, IBigTable.IDataReadable dataReadable, String indexTableName, String dataTableName) {
+        // 判断开始时间RowKey字符串
+        PrimaryKeyValue startTimeKeyValue;
+        if(StringUtils.isNotBlank(startTimeRowKey)) {
+            startTimeKeyValue = PrimaryKeyValue.fromString(startTimeRowKey);
+        } else {
+            startTimeKeyValue = PrimaryKeyValue.INF_MIN;
+        }
+
+        // 构建范围读取条件
+        RangeRowQueryCriteria rangeRowQueryCriteria = new RangeRowQueryCriteria(indexTableName);
+
+        // 设置起始主键
+        PrimaryKeyBuilder primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, startTimeKeyValue);
+        rangeRowQueryCriteria.setInclusiveStartPrimaryKey(primaryKeyBuilder.build());
+
+        // 设置结束主键
+        primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.INF_MAX);
+        rangeRowQueryCriteria.setExclusiveEndPrimaryKey(primaryKeyBuilder.build());
+
+        // 设置读取最新版本和读取列信息
+        rangeRowQueryCriteria.setMaxVersions(1);
+        rangeRowQueryCriteria.addColumnsToGet(DATA_COLUMN_NAME);
+
+        // 读取数据
+        String rowKey = startTimeRowKey;
+        List<String> dataRowKeyList;
+        GetRangeResponse getRangeResponse;
+        while (true) {
+            // 执行查询
+            dataRowKeyList = new ArrayList<>();
+            getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
+            if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
+                // 循环遍历数据
+                for (Row row : getRangeResponse.getRows()) {
+                    // 基本判断
+                    if(null != row && null != row.getColumns() && 0 < row.getColumns().length) {
+                        // 获得rowKey和需要转移的RowKey
+                        rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
+                        if(null != rowKey && !rowKey.equals(startTimeRowKey)) {
+                            // 添加RowKeyValue
+                            dataRowKeyList.add(row.getColumns()[0].getValue().asString());
+                        }
+                    }
+                }
+            } else {
+                // 记录日志
+                s_logger.info(">> query nothing...");
+            }
+
+            // 执行转移操作，限制每100个处理一次
+            if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
+                List<String> subRowKeyList = new ArrayList<>();
+                for (int i = 0, n = dataRowKeyList.size(); i < n; i++) {
+                    if(100 == subRowKeyList.size()) {
+                        // 每积累100个数据包键值则进行批量查询数据包信息
+                        queryDataPack(subRowKeyList, dataReadable, dataTableName);
+                        // 重新初始化
+                        subRowKeyList = new ArrayList<>();
+                    }
+                    subRowKeyList.add(dataRowKeyList.get(i));
+                }
+                // 最后处理小于100的数据包键值
+                if(null != subRowKeyList && 0 < subRowKeyList.size()) {
+                    queryDataPack(subRowKeyList, dataReadable, dataTableName);
+                }
+            }
+
+            // 若nextStartPrimaryKey不为null, 则继续读取
+            if (null != getRangeResponse.getNextStartPrimaryKey()) {
+                rangeRowQueryCriteria.setInclusiveStartPrimaryKey(getRangeResponse.getNextStartPrimaryKey());
+            } else {
+                break;
+            }
+        }
+
+        // 返回处理的最后一个RowKey
+        return rowKey;
+    }
+
+    /**
+     * 查询真实数据包数据
+     *
+     * @param dataRowKeyList 数据RowKey集合
+     * @param dataReadable 数据读取接口
+     * @param dataTableName 数据表名称
+     */
+    private void queryDataPack(List<String> dataRowKeyList, IBigTable.IDataReadable dataReadable, String dataTableName) {
+        // 判断集合状态
+        if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
+            // 批量读取OTS数据
+            MultiRowQueryCriteria multiRowQueryCriteria = new MultiRowQueryCriteria(dataTableName);
+
+            // 加入要读取的行
+            PrimaryKeyBuilder primaryKeyBuilder;
+            for (String rowKey: dataRowKeyList) {
+                primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+                primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(rowKey));
+                PrimaryKey primaryKey = primaryKeyBuilder.build();
+                multiRowQueryCriteria.addRow(primaryKey);
+            }
+
+            // 设置读取最新版本和读取列信息
+            multiRowQueryCriteria.setMaxVersions(1);
+            multiRowQueryCriteria.addColumnsToGet(DATA_COLUMN_NAME);
+
+            // 执行批量读取
+            BatchGetRowRequest batchGetRowRequest = new BatchGetRowRequest();
+            batchGetRowRequest.addMultiRowQueryCriteria(multiRowQueryCriteria);
+            BatchGetRowResponse batchGetRowResponse = client.batchGetRow(batchGetRowRequest);
+            if (!batchGetRowResponse.isAllSucceed()) {
+                for (BatchGetRowResponse.RowResult rowResult : batchGetRowResponse.getFailedRows()) {
+                    // 错误日志
+                    s_logger.error(">> batch get error：");
+                    s_logger.error("error row:" + batchGetRowRequest.getPrimaryKey(rowResult.getTableName(), rowResult.getIndex()));
+                    s_logger.error("error :" + rowResult.getError());
+                }
+            } else {
+                // 转移数据到MySQL
+                Row row;
+                String rowKey;
+                String jsonString;
+                String objectTypeString;
+                List<BatchGetRowResponse.RowResult> rowResultList = batchGetRowResponse.getSucceedRows();
+                if(null != rowResultList && 0 < rowResultList.size()) {
+                    for(BatchGetRowResponse.RowResult rowResult: rowResultList) {
+                        if(null != rowResult && null != rowResult.getRow()) {
+                            row = rowResult.getRow();
+                            if(null != row.getColumns() && 0 < row.getColumns().length) {
+                                // 获得rowkey和json字符串
+                                rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
+                                jsonString = row.getColumns()[0].getValue().asString();
+
+                                // 记录日志
+                                s_logger.info(">> read key(" + rowKey + ")...");
+
+                                // 根据rowkey分析类型，将json字符串转换对象
+                                objectTypeString = RowKeyUtil.getDataTypeFromRowKey(rowKey);
+
+                                // 执行以下4个类型才需要转换json，否则转换json比较费时间
+                                switch (objectTypeString) {
+                                    case DataPackObjectUtils.POSITION:
+                                    case DataPackObjectUtils.PEAK:
+                                    case DataPackObjectUtils.ALARM:
+                                    case DataPackObjectUtils.OVERVIEW:
+                                        // json转对象
+                                        Object object = DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString));
+                                        // 传递读取对象数据
+                                        dataReadable.onRead(object);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+    }
 }
