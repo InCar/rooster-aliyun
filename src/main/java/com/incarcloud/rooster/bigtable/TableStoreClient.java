@@ -355,51 +355,56 @@ public class TableStoreClient {
         String rowKey = startTimeRowKey;
         List<String> dataRowKeyList;
         GetRangeResponse getRangeResponse;
-        while (true) {
-            // 执行查询
-            dataRowKeyList = new ArrayList<>();
-            getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
-            // 要求大于1到好处就是同步完最后一条数据，没有新数据同步的时候，不会同步已同步的数据
-            if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
-                // 循环遍历数据
-                for (Row row : getRangeResponse.getRows()) {
-                    // 基本判断
-                    if(null != row && null != row.getColumns() && 0 < row.getColumns().length) {
-                        // 获得rowKey和需要转移的RowKey
-                        rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
-                        // 添加RowKeyValue
-                        dataRowKeyList.add(row.getColumns()[0].getValue().asString());
+        try {
+            while (true) {
+                // 执行查询
+                dataRowKeyList = new ArrayList<>();
+                getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
+                // 要求大于1到好处就是同步完最后一条数据，没有新数据同步的时候，不会同步已同步的数据
+                if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
+                    // 循环遍历数据
+                    for (Row row : getRangeResponse.getRows()) {
+                        // 基本判断
+                        if(null != row && null != row.getColumns() && 0 < row.getColumns().length) {
+                            // 获得rowKey和需要转移的RowKey
+                            rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
+                            // 添加RowKeyValue
+                            dataRowKeyList.add(row.getColumns()[0].getValue().asString());
+                        }
                     }
+                } else {
+                    // 记录日志
+                    s_logger.info(">> query nothing...");
                 }
-            } else {
-                // 记录日志
-                s_logger.info(">> query nothing...");
-            }
 
-            // 执行转移操作，限制每100个处理一次
-            if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
-                List<String> subRowKeyList = new ArrayList<>();
-                for (int i = 0, n = dataRowKeyList.size(); i < n; i++) {
-                    if(100 == subRowKeyList.size()) {
-                        // 每积累100个数据包键值则进行批量查询数据包信息
+                // 执行转移操作，限制每100个处理一次
+                if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
+                    List<String> subRowKeyList = new ArrayList<>();
+                    for (int i = 0, n = dataRowKeyList.size(); i < n; i++) {
+                        if(100 == subRowKeyList.size()) {
+                            // 每积累100个数据包键值则进行批量查询数据包信息
+                            queryDataPack(subRowKeyList, dataReadable, dataTableName);
+                            // 重新初始化
+                            subRowKeyList = new ArrayList<>();
+                        }
+                        subRowKeyList.add(dataRowKeyList.get(i));
+                    }
+                    // 最后处理小于100的数据包键值
+                    if(null != subRowKeyList && 0 < subRowKeyList.size()) {
                         queryDataPack(subRowKeyList, dataReadable, dataTableName);
-                        // 重新初始化
-                        subRowKeyList = new ArrayList<>();
                     }
-                    subRowKeyList.add(dataRowKeyList.get(i));
                 }
-                // 最后处理小于100的数据包键值
-                if(null != subRowKeyList && 0 < subRowKeyList.size()) {
-                    queryDataPack(subRowKeyList, dataReadable, dataTableName);
+
+                // 若nextStartPrimaryKey不为null, 则继续读取
+                if (null != getRangeResponse.getNextStartPrimaryKey()) {
+                    rangeRowQueryCriteria.setInclusiveStartPrimaryKey(getRangeResponse.getNextStartPrimaryKey());
+                } else {
+                    break;
                 }
             }
 
-            // 若nextStartPrimaryKey不为null, 则继续读取
-            if (null != getRangeResponse.getNextStartPrimaryKey()) {
-                rangeRowQueryCriteria.setInclusiveStartPrimaryKey(getRangeResponse.getNextStartPrimaryKey());
-            } else {
-                break;
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         // 返回处理的最后一个RowKey
