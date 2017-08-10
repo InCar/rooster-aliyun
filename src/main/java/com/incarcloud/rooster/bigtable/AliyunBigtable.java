@@ -8,6 +8,8 @@ import com.incarcloud.rooster.util.RowKeyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
+
 /**
  * @author Fan Beibei
  * @Description: 描述
@@ -35,8 +37,8 @@ public class AliyunBigtable implements IBigTable {
     }
 
     @Override
-    public void saveDataPackObject(String rowKey, DataPackObject data) throws Exception {
-        String secondIndexRowKey = RowKeyUtil.makeDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(data.getDetectionTime()),
+    public void saveDataPackObject(String rowKey, DataPackObject data, Date recieveTime) throws Exception {
+        String secondIndexRowKey = RowKeyUtil.makeDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(recieveTime),
                 data.getVin(), DataPackObjectUtils.getDataType(data));
 
         client.insert(secondIndexRowKey, rowKey, SECOND_INDEX_TABLE);
