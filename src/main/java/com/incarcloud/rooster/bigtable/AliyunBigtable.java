@@ -53,11 +53,6 @@ public class AliyunBigtable implements IBigTable {
     }
 
     @Override
-    public String queryRowKey(String startTimeString) {
-        return client.queryRowKey(startTimeString, SECOND_INDEX_TABLE);
-    }
-
-    @Override
     public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
         return client.queryData(startTimeRowKey, dataReadable, SECOND_INDEX_TABLE, TELEMETRY_TABLE);
     }
