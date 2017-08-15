@@ -269,57 +269,10 @@ public class TableStoreClient {
     }
 
     /**
-     * 根据开始时间字符串查询开始时间RowKey
-     *
-     * @param startTimeString 开始时间字符串
-     * @param indexTableName 二级索引表名称
-     * @return
-     */
-    public String queryRowKey(String startTimeString, String indexTableName) {
-        // 判断字符串信息
-        if(null == startTimeString || "".equals(startTimeString)) {
-            throw new IllegalArgumentException("startTimeString is empty");
-        }
-
-        // 根据开始时间字符串，构造模糊范围查询条件
-        String timeString = startTimeString.replaceAll("-", "")
-                .replaceAll(" ", "")
-                .replaceAll(":", "");
-        String startPkValue = RowKeyUtil.makeMinDetectionTimeIndexRowKey(timeString);
-        //String endPkValue = RowKeyUtil.makeMaxDetectionTimeIndexRowKey(timeString.substring(0, timeString.length()-6) + "zzzzzz");
-
-        // 构建范围读取条件
-        RangeRowQueryCriteria rangeRowQueryCriteria = new RangeRowQueryCriteria(indexTableName);
-
-        // 设置起始主键
-        PrimaryKeyBuilder primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
-        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(startPkValue));
-        rangeRowQueryCriteria.setInclusiveStartPrimaryKey(primaryKeyBuilder.build());
-
-        // 设置结束主键
-        primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
-        //primaryKeyBuilder.addPrimaryKeyColumn(TableStoreConfiguration.PRIMARY_KEY_NAME, PrimaryKeyValue.fromString(endPkValue));
-        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.INF_MAX);
-        rangeRowQueryCriteria.setExclusiveEndPrimaryKey(primaryKeyBuilder.build());
-
-        // 设置读取最新版本和读取列信息
-        rangeRowQueryCriteria.setMaxVersions(1);
-        rangeRowQueryCriteria.addColumnsToGet(DATA_COLUMN_NAME);
-
-        // 获得最小RowKey字符串
-        GetRangeResponse getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
-        if(null != getRangeResponse.getRows() && 0 < getRangeResponse.getRows().size()) {
-            return getRangeResponse.getRows().get(0).getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
-        }
-
-        return null;
-    }
-
-    /**
      * 查询数据包的RowKey集合，并根据RowKey集合查询真实数据包数据<br>
      *     如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
      *
-     * @param startTimeRowKey 开始时间RowKey
+     * @param startTimeRowKey 开始时间RowKey，格式：DETECTIONTIME_yyyyMMddHHmmss_#######################################
      * @param dataReadable 数据读取接口
      * @param indexTableName 二级索引表名称
      * @param dataTableName 数据表名称
