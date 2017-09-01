@@ -80,7 +80,7 @@ public class TableStoreClient {
         // 写数据到TableStore
         client.putRow(new PutRowRequest(rowPutChange));
         // 如果没有抛出异常，则说明执行成功
-        s_logger.debug("Put row succeeded.");
+        s_logger.debug("Put row to  "+tableName+" succeeded."+pkValue);
     }
 
     /**
