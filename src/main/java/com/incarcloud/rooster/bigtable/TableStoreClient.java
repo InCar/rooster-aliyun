@@ -86,13 +86,13 @@ public class TableStoreClient {
     /**
      * 批量插入数据
      *
-     * @param pkVals     pk -> val
+     * @param pkVals    pk -> val
      * @param tableName 表格名称
      */
     public void batchInsert(Map<String, String> pkVals, String tableName) {
         BatchWriteRowRequest batchWriteRowRequest = new BatchWriteRowRequest();
 
-        for(Map.Entry<String,String> pkVal:pkVals.entrySet() ){
+        for (Map.Entry<String, String> pkVal : pkVals.entrySet()) {
 
             PrimaryKeyBuilder pkBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
 
@@ -109,7 +109,7 @@ public class TableStoreClient {
 
             if (!response.isAllSucceed()) {
                 for (BatchWriteRowResponse.RowResult rowResult : response.getFailedRows()) {
-                    s_logger.debug("失败的行:" + batchWriteRowRequest.getRowChange(rowResult.getTableName(), rowResult.getIndex()).getPrimaryKey()+"\n失败原因:" + rowResult.getError());
+                    s_logger.debug("失败的行:" + batchWriteRowRequest.getRowChange(rowResult.getTableName(), rowResult.getIndex()).getPrimaryKey() + "\n失败原因:" + rowResult.getError());
                 }
                 /**
                  * 可以通过createRequestForRetry方法再构造一个请求对失败的行进行重试.这里只给出构造重试请求的部分.
@@ -270,18 +270,18 @@ public class TableStoreClient {
 
     /**
      * 查询数据包的RowKey集合，并根据RowKey集合查询真实数据包数据<br>
-     *     如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
+     * 如果startTimeRowKey为blank，则默认PrimaryKeyValue.INF_MIN
      *
      * @param startTimeRowKey 开始时间RowKey，格式：DETECTIONTIME_yyyyMMddHHmmss_#######################################
-     * @param dataReadable 数据读取接口
-     * @param indexTableName 二级索引表名称
-     * @param dataTableName 数据表名称
+     * @param dataReadable    数据读取接口
+     * @param indexTableName  二级索引表名称
+     * @param dataTableName   数据表名称
      * @return
      */
     public String queryData(String startTimeRowKey, IBigTable.IDataReadable dataReadable, String indexTableName, String dataTableName) {
         // 判断开始时间RowKey字符串
         PrimaryKeyValue startTimeKeyValue;
-        if(StringUtils.isNotBlank(startTimeRowKey)) {
+        if (StringUtils.isNotBlank(startTimeRowKey)) {
             startTimeKeyValue = PrimaryKeyValue.fromString(startTimeRowKey);
         } else {
             startTimeKeyValue = PrimaryKeyValue.INF_MIN;
@@ -314,11 +314,11 @@ public class TableStoreClient {
                 dataRowKeyList = new ArrayList<>();
                 getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
                 // 要求大于1到好处就是同步完最后一条数据，没有新数据同步的时候，不会同步已同步的数据
-                if(null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
+                if (null != getRangeResponse.getRows() && 1 < getRangeResponse.getRows().size()) {
                     // 循环遍历数据
                     for (Row row : getRangeResponse.getRows()) {
                         // 基本判断
-                        if(null != row && null != row.getColumns() && 0 < row.getColumns().length) {
+                        if (null != row && null != row.getColumns() && 0 < row.getColumns().length) {
                             // 获得rowKey和需要转移的RowKey
                             rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
                             // 添加RowKeyValue
@@ -331,10 +331,10 @@ public class TableStoreClient {
                 }
 
                 // 执行转移操作，限制每100个处理一次
-                if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
+                if (null != dataRowKeyList && 0 < dataRowKeyList.size()) {
                     List<String> subRowKeyList = new ArrayList<>();
                     for (int i = 0, n = dataRowKeyList.size(); i < n; i++) {
-                        if(100 == subRowKeyList.size()) {
+                        if (100 == subRowKeyList.size()) {
                             // 每积累100个数据包键值则进行批量查询数据包信息
                             queryDataPack(subRowKeyList, dataReadable, dataTableName);
                             // 重新初始化
@@ -343,7 +343,7 @@ public class TableStoreClient {
                         subRowKeyList.add(dataRowKeyList.get(i));
                     }
                     // 最后处理小于100的数据包键值
-                    if(null != subRowKeyList && 0 < subRowKeyList.size()) {
+                    if (null != subRowKeyList && 0 < subRowKeyList.size()) {
                         queryDataPack(subRowKeyList, dataReadable, dataTableName);
                     }
                 }
@@ -368,18 +368,18 @@ public class TableStoreClient {
      * 查询真实数据包数据
      *
      * @param dataRowKeyList 数据RowKey集合
-     * @param dataReadable 数据读取接口
-     * @param dataTableName 数据表名称
+     * @param dataReadable   数据读取接口
+     * @param dataTableName  数据表名称
      */
     private void queryDataPack(List<String> dataRowKeyList, IBigTable.IDataReadable dataReadable, String dataTableName) {
         // 判断集合状态
-        if(null != dataRowKeyList && 0 < dataRowKeyList.size()) {
+        if (null != dataRowKeyList && 0 < dataRowKeyList.size()) {
             // 批量读取OTS数据
             MultiRowQueryCriteria multiRowQueryCriteria = new MultiRowQueryCriteria(dataTableName);
 
             // 加入要读取的行
             PrimaryKeyBuilder primaryKeyBuilder;
-            for (String rowKey: dataRowKeyList) {
+            for (String rowKey : dataRowKeyList) {
                 primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
                 primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(rowKey));
                 PrimaryKey primaryKey = primaryKeyBuilder.build();
@@ -408,11 +408,11 @@ public class TableStoreClient {
                 String jsonString;
                 String objectTypeString;
                 List<BatchGetRowResponse.RowResult> rowResultList = batchGetRowResponse.getSucceedRows();
-                if(null != rowResultList && 0 < rowResultList.size()) {
-                    for(BatchGetRowResponse.RowResult rowResult: rowResultList) {
-                        if(null != rowResult && null != rowResult.getRow()) {
+                if (null != rowResultList && 0 < rowResultList.size()) {
+                    for (BatchGetRowResponse.RowResult rowResult : rowResultList) {
+                        if (null != rowResult && null != rowResult.getRow()) {
                             row = rowResult.getRow();
-                            if(null != row.getColumns() && 0 < row.getColumns().length) {
+                            if (null != row.getColumns() && 0 < row.getColumns().length) {
                                 // 获得rowkey和json字符串
                                 rowKey = row.getPrimaryKey().getPrimaryKeyColumns()[0].getValue().asString();
                                 jsonString = row.getColumns()[0].getValue().asString();
@@ -429,6 +429,18 @@ public class TableStoreClient {
                                     case DataPackObjectUtils.PEAK:
                                     case DataPackObjectUtils.ALARM:
                                     case DataPackObjectUtils.OVERVIEW:
+                                    case DataPackObjectUtils.ADAS:
+                                    case DataPackObjectUtils.BCM:
+                                    case DataPackObjectUtils.BMS:
+                                    case DataPackObjectUtils.EPS:
+                                    case DataPackObjectUtils.HVAC:
+                                    case DataPackObjectUtils.VMS:
+                                    case DataPackObjectUtils.LOGINOUT:
+                                    case DataPackObjectUtils.PEPS:
+                                    case DataPackObjectUtils.OBC:
+                                    case DataPackObjectUtils.MC:
+
+
                                         // json转对象
                                         Object object = DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString));
                                         // 传递读取对象数据
