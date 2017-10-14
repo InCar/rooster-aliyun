@@ -3,6 +3,7 @@ package com.incarcloud.rooster.remotecmd.client;/**
  */
 
 import com.google.gson.Gson;
+import com.incarcloud.rooster.gather.cmd.CommandServerRespCode;
 import com.incarcloud.rooster.gather.cmd.CommandType;
 import com.incarcloud.rooster.gather.cmd.ReqContent;
 import com.incarcloud.rooster.gather.cmd.RespContent;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 
 /**
  * @author Fan Beibei
@@ -38,9 +40,14 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
         ReqContent req = new ReqContent(command, vin);
 
         Gson gson = new Gson();
-        String result = HttpClientUtil.postJson(url, gson.toJson(req));
-
-        RespContent resp = gson.fromJson(result, RespContent.class);
+        String result = null;
+        RespContent resp = null;
+        try {
+            result = HttpClientUtil.postJson(url, gson.toJson(req));
+            resp = gson.fromJson(result, RespContent.class);
+        }catch (SocketTimeoutException e){
+            resp = new RespContent(CommandServerRespCode.REQ_TIMEOUT,"请求超时");
+        }
 
         return resp;
     }
