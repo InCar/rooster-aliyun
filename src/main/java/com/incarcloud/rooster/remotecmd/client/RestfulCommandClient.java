@@ -43,7 +43,7 @@ public abstract class RestfulCommandClient extends AbstractCommandClient {
         String result = null;
         RespContent resp = null;
         try {
-            result = HttpClientUtil.postJson(url, gson.toJson(req));
+            result = HttpClientUtil.postJson(url, gson.toJson(req),"UTF-8",30000);
             resp = gson.fromJson(result, RespContent.class);
         } catch (SocketTimeoutException e) {
             resp = new RespContent(CommandServerRespCode.REQ_TIMEOUT, "请求超时");
