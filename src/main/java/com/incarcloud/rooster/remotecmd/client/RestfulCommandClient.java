@@ -21,7 +21,7 @@ import java.net.SocketTimeoutException;
  * @Description: restful客户端
  * @date 2017/7/19 17:02
  */
-public  abstract class RestfulCommandClient extends AbstractCommandClient {
+public abstract class RestfulCommandClient extends AbstractCommandClient {
     private static Logger s_logger = LoggerFactory.getLogger(RestfulCommandClient.class);
 
     /**
@@ -31,13 +31,13 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
      * @throws IOException 请求超时设备网络问题
      */
     @Override
-    public RespContent sendCommand(String url, String vin, CommandType command) throws IOException {
+    public RespContent sendCommand(String url, String vin, CommandType command, Object[] args) throws IOException {
         if (StringUtil.isBlank(url) || StringUtil.isBlank(vin) || null == command) {
             throw new IllegalArgumentException();
         }
 
 
-        ReqContent req = new ReqContent(command, vin);
+        ReqContent req = new ReqContent(command, vin, args);
 
         Gson gson = new Gson();
         String result = null;
@@ -45,8 +45,8 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
         try {
             result = HttpClientUtil.postJson(url, gson.toJson(req));
             resp = gson.fromJson(result, RespContent.class);
-        }catch (SocketTimeoutException e){
-            resp = new RespContent(CommandServerRespCode.REQ_TIMEOUT,"请求超时");
+        } catch (SocketTimeoutException e) {
+            resp = new RespContent(CommandServerRespCode.REQ_TIMEOUT, "请求超时");
         }
 
         return resp;
