@@ -40,13 +40,24 @@ public class AliYunConfig {
 	private String _mnsEndpoint;
 	private String _mnsQueue;
 	private String _mnsTopic;
+	/**
+	 * gather项目中为堆积报文的mq
+	 * pipe项目中为取报文的mq
+	 */
 	private String queueName;
+	/**
+	 * 国标推送mq
+	 */
+	private String gbQueueName;
+	/**
+	 * 地标推送mq
+	 */
+	private String dbQueueName;
 
 	private int maxConnectionsPerRoute;
 	private int maxConnections;
 
-
-	//OTS
+	// OTS
 	private String otsInstance;
 	private String otsEndpoint;
 
@@ -121,5 +132,29 @@ public class AliYunConfig {
 	public String getQueueName() {
 		return queueName;
 	}
+
+	/**
+	 * @return the gbQueueName
+	 */
+	public String getGbQueueName() {
+		return gbQueueName;
+	}
+	
+
+	@Value("${rooster.aliyun.MNS.gbQueue}")
+	public void setGbQueueName(String gbQueueName) {
+		this.gbQueueName = gbQueueName;
+	}
+
+	public String getDbQueueName() {
+		return dbQueueName;
+	}
+	
+	@Value("${rooster.aliyun.MNS.dbQueue}")
+	public void setDbQueueName(String dbQueueName) {
+		this.dbQueueName = dbQueueName;
+	}
+	
+	
 
 }
