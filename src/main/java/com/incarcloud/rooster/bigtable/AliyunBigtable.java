@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author Fan Beibei
@@ -55,6 +56,11 @@ public class AliyunBigtable implements IBigTable {
     @Override
     public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
         return client.queryData(startTimeRowKey, dataReadable, SECOND_INDEX_TABLE, TELEMETRY_TABLE);
+    }
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
+        return client.queryData(vinOrCode, clazz, startTime, endTime, TELEMETRY_TABLE);
     }
 
     @Override
