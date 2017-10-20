@@ -6,6 +6,7 @@ import com.alicloud.openservices.tablestore.ClientConfiguration;
 import com.alicloud.openservices.tablestore.SyncClient;
 import com.alicloud.openservices.tablestore.model.*;
 import com.alicloud.openservices.tablestore.model.internal.CreateTableRequestEx;
+import com.incarcloud.rooster.datapack.DataPackObject;
 import com.incarcloud.rooster.util.DataPackObjectUtils;
 import com.incarcloud.rooster.util.RowKeyUtil;
 import com.incarcloud.rooster.util.StringUtil;
@@ -13,7 +14,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -362,6 +366,81 @@ public class TableStoreClient {
 
         // 返回处理的最后一个RowKey
         return rowKey;
+    }
+
+    /**
+     *　根据vin码或设备号，以及时间段查询原始数据列表
+     *
+     * @param vinOrCode vin码或设备号
+     * @param clazz 指定数据类型
+     * @param startTime 查询开始时间
+     * @param endTime　查询结束时间
+     * @param tableName　数据表名称
+     * @return
+     */
+    public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime, String tableName) {
+        // 参数不能缺少
+        if(null == vinOrCode || null == startTime || null == endTime) {
+            throw new IllegalArgumentException("the params can't be null");
+        }
+        // 查询开始时间必须小于结束时间
+        if(startTime.getTime() > endTime.getTime()) {
+            throw new IllegalArgumentException("the end time must be bigger than the start time");
+        }
+
+        // 构建开始rowKey和结束rowKey
+        DateFormat dataFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        String startKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), dataFormat.format(startTime));
+        String endKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), dataFormat.format(endTime));
+
+        // 构建范围读取条件
+        RangeRowQueryCriteria rangeRowQueryCriteria = new RangeRowQueryCriteria(tableName);
+
+        // 设置起始主键
+        PrimaryKeyBuilder primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(startKey));
+        rangeRowQueryCriteria.setInclusiveStartPrimaryKey(primaryKeyBuilder.build());
+
+        // 设置结束主键
+        primaryKeyBuilder = PrimaryKeyBuilder.createPrimaryKeyBuilder();
+        primaryKeyBuilder.addPrimaryKeyColumn(PK_COLUMN_NAME, PrimaryKeyValue.fromString(endKey));
+        rangeRowQueryCriteria.setExclusiveEndPrimaryKey(primaryKeyBuilder.build());
+
+        // 设置读取最新版本和读取列信息
+        rangeRowQueryCriteria.setMaxVersions(1);
+        rangeRowQueryCriteria.addColumnsToGet(DATA_COLUMN_NAME);
+
+        // 读取数据
+        List<String> dataRowKeyList;
+        GetRangeResponse getRangeResponse;
+        try {
+            String jsonString;
+            List<T> dataList = new ArrayList<>();
+            while (true) {
+                // 执行查询
+                getRangeResponse = client.getRange(new GetRangeRequest(rangeRowQueryCriteria));
+
+                // 遍历数据
+                for (Row row : getRangeResponse.getRows()) {
+                    jsonString = row.getColumns()[0].getValue().asString();
+                    if(StringUtils.isNotBlank(jsonString)) {
+                        dataList.add(DataPackObjectUtils.fromJson(jsonString, clazz));
+                    }
+                }
+
+                // 若nextStartPrimaryKey不为null, 则继续读取
+                if (null != getRangeResponse.getNextStartPrimaryKey()) {
+                    rangeRowQueryCriteria.setInclusiveStartPrimaryKey(getRangeResponse.getNextStartPrimaryKey());
+                } else {
+                    break;
+                }
+            }
+            return dataList;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
