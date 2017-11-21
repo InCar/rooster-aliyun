@@ -5,7 +5,6 @@ build
 out
 
 application-*.yml
-gradle.properties
 *.log
 *.out
 /.settings
